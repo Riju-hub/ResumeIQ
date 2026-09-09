@@ -1,6 +1,6 @@
-
 import io
 import mimetypes
+import gc
 from typing import Tuple, Optional
 
 import pdfplumber
@@ -22,10 +22,6 @@ from backend.core.config import (
 )
 
 
-class FileParsingError(Exception):
-    pass
-
-
 class FileValidationError(Exception):
     pass
 
@@ -42,10 +38,8 @@ def validate_file(file_data: bytes, filename: str) -> Tuple[bool, str, Optional[
     if file_size_bytes == 0:
         return False, 'Uploaded file is empty. Please check the file and try again.', None
 
-    # Safe MIME type detection: check magic bytes directly, fallback to filename extension
     mime_type = None
 
-    # Check magic file signatures (pure Python, zero C/POSIX library crashes)
     if file_data.startswith(b'%PDF-'):
         mime_type = 'application/pdf'
     elif file_data.startswith(b'PK\x03\x04'):
@@ -53,7 +47,6 @@ def validate_file(file_data: bytes, filename: str) -> Tuple[bool, str, Optional[
     elif file_data.startswith(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'):
         mime_type = 'application/msword'
     else:
-        # Fallback to python standard library mimetypes
         guessed_type, _ = mimetypes.guess_type(filename)
         mime_type = guessed_type
 
@@ -96,11 +89,16 @@ def _extract_pdf_hyperlinks(file_data: bytes) -> str:
 
 def _extract_pdf_with_pdfplumber(file_data: bytes) -> str:
     text = ''
-    with pdfplumber.open(io.BytesIO(file_data)) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + '\n'
+    stream = io.BytesIO(file_data)
+    try:
+        with pdfplumber.open(stream) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + '\n'
+    finally:
+        stream.close()
+        gc.collect()
 
     if not text.strip():
         raise TextExtractionError(
@@ -117,11 +115,16 @@ def _extract_pdf_with_pdfplumber(file_data: bytes) -> str:
 
 def _extract_pdf_with_pypdf2(file_data: bytes) -> str:
     text = ''
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_data))
-    for page in pdf_reader.pages:
-        page_text = page.extract_text()
-        if page_text:
-            text += page_text + '\n'
+    stream = io.BytesIO(file_data)
+    try:
+        pdf_reader = PyPDF2.PdfReader(stream)
+        for page in pdf_reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + '\n'
+    finally:
+        stream.close()
+        gc.collect()
 
     if not text.strip():
         raise TextExtractionError(

@@ -7,8 +7,8 @@ from groq import Groq
 
 logger = logging.getLogger('ats_resume_scorer')
 
-# Use your active Groq model
-GROQ_MODEL = 'openai/gpt-oss-120b'
+# Active standard production Groq model
+GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
 _client = None
 
 
@@ -96,8 +96,8 @@ def _call_groq_json(client: Groq, system_prompt: str, user_prompt: str) -> str:
             {'role': 'user', 'content': user_prompt}
         ],
         temperature=0.1,
-        max_tokens=4096,  # Increased token limit so long summaries/experience do not truncate
-        response_format={"type": "json_object"},  # Enforces valid JSON from Groq engine
+        max_tokens=4096,
+        response_format={"type": "json_object"},
         timeout=30.0
     )
     return response.choices[0].message.content.strip()
