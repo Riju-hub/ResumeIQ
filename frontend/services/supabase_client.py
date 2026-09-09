@@ -7,7 +7,6 @@ from supabase import Client, create_client
 
 logger = logging.getLogger('ats_resume_scorer')
 
-
 try:
     from dotenv import load_dotenv
     load_dotenv(Path(__file__).resolve().parents[2] / '.env')
@@ -16,14 +15,42 @@ except ImportError:
 
 
 def _secret(key: str, section: str = 'supabase') -> str:
-    """Read from env first, then fall back to st.secrets[section][key]."""
+    """Read from env first, then nested st.secrets[section], then root st.secrets."""
+    # 1. Check OS environment variable
     val = os.getenv(key, '')
     if val:
         return val
+
+    # Candidate key names to search (e.g., SUPABASE_URL, supabase_url, url)
+    candidates = [
+        key,
+        key.lower(),
+        key.upper(),
+        key.replace("SUPABASE_", "").lower(),
+        key.replace("SUPABASE_", "").upper(),
+    ]
+    if "KEY" in key:
+        candidates.extend(["key", "KEY", "anon_key", "ANON_KEY"])
+
+    # 2. Check nested section: st.secrets[section]
     try:
-        return st.secrets[section][key]
-    except (KeyError, FileNotFoundError, AttributeError):
-        return ''
+        if section in st.secrets:
+            sec_dict = st.secrets[section]
+            for candidate in candidates:
+                if candidate in sec_dict and sec_dict[candidate]:
+                    return str(sec_dict[candidate])
+    except Exception:
+        pass
+
+    # 3. Check root level: st.secrets
+    try:
+        for candidate in candidates:
+            if candidate in st.secrets and st.secrets[candidate]:
+                return str(st.secrets[candidate])
+    except Exception:
+        pass
+
+    return ''
 
 
 SUPABASE_URL = _secret('SUPABASE_URL')
@@ -32,7 +59,7 @@ SUPABASE_ANON_KEY = _secret('SUPABASE_ANON_KEY')
 OAUTH_REDIRECT_URL = (
     os.getenv('AUTH_REDIRECT_URL')
     or _secret('redirect_uri', 'google_oauth')
-    or 'http://localhost:8501'
+    or 'https://resumeiq-jxzub6fh22sedvgffpftsr.streamlit.app'
 )
 
 
@@ -52,10 +79,10 @@ def get_client() -> Client | None:
 
 def _session_dict(session, user) -> Dict[str, Any]:
     return {
-        'access_token':  session.access_token,
+        'access_token': session.access_token,
         'refresh_token': session.refresh_token,
-        'user_id':       user.id,
-        'email':         user.email,
+        'user_id': user.id,
+        'email': user.email,
     }
 
 
@@ -139,7 +166,6 @@ def sign_out() -> None:
 
 def _humanize(exc: Exception) -> str:
     msg = str(exc)
-    # supabase errors arrive as "<status>: {json blob}" — surface the human bit
     if 'invalid_grant' in msg.lower() or 'invalid login' in msg.lower():
         return 'Wrong email or password'
     if 'user already registered' in msg.lower() or 'already been registered' in msg.lower():
