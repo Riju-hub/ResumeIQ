@@ -463,7 +463,9 @@
 
 
 import gc
-from typing import List
+from typing import Dict, List, Tuple
+import numpy as np
+from sentence_transformers import SentenceTransformer
 import torch
 
 from backend.utils.file_utils import log_warning
