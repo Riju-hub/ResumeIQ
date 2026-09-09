@@ -1,0 +1,135 @@
+# Environment & Secrets (Never commit these)
+.env
+.env.*
+*.env
+frontend/.streamlit/secrets.toml
+
+.env
+*.env
+backend/.env
+frontend/.env
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+
+# Datasets & Uploaded Artifacts
+*.csv
+*.tsv
+*.jsonl
+*.pdf
+*.docx
+*.doc
+backend/uploads/
+backend/temp/
+frontend/temp/
+
+# Logs
+*.log
+logs/
+
+# Machine Learning Models & Checkpoints
+*.safetensors
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.onnx
+*.bin
+*.h5
+models_cache/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ai-resume-ats-main/
+# ├── .env
+# ├── .gitignore
+# ├── README.md
+# ├── requirements.txt
+# ├── .venv/
+# ├── backend/
+# │   ├── api/
+# │   │   ├── auth.py
+# │   │   └── routes.py
+# │   ├── core/
+# │   │   └── config.py
+# │   ├── database/
+# │   │   └── supabase_db.py
+# │   ├── models/
+# │   │   └── schemas.py
+# │   ├── services/
+# │   │   ├── ats_scorer.py
+# │   │   ├── feedback_engine.py
+# │   │   ├── groq_parser.py
+# │   │   ├── jd_matcher.py
+# │   │   ├── pdf_export.py
+# │   │   ├── recommendation_engine.py
+# │   │   ├── report_generator.py
+# │   │   ├── resume_analyzer.py
+# │   │   └── resume_parser.py
+# │   ├── templates/
+# │   │   ├── action_items.html
+# │   │   ├── jd_comparison.html
+# │   │   ├── quick_actions.html
+# │   │   └── summary.html
+# │   ├── utils/
+# │   │   ├── file_utils.py
+# │   │   └── matching.py
+# │   └── main.py
+# ├── frontend/
+# │   ├── .streamlit/
+# │   │   └── config.toml
+# │   ├── assets/
+# │   │   ├── .gitkeep
+# │   │   └── styles.css
+# │   ├── components/
+# │   │   ├── __init__.py
+# │   │   ├── _helpers.py
+# │   │   ├── action_items.py
+# │   │   ├── dashboard.py
+# │   │   ├── detailed_feedback.py
+# │   │   ├── jd_comparison.py
+# │   │   ├── recommendations.py
+# │   │   ├── score_display.py
+# │   │   ├── skill_validation.py
+# │   │   └── strengths_issues.py
+# │   ├── services/
+# │   │   ├── __init__.py
+# │   │   ├── api_client.py
+# │   │   └── supabase_client.py
+# │   ├── views/
+# │   │   ├── __init__.py
+# │   │   ├── history.py
+# │   │   ├── landing.py
+# │   │   ├── resources.py
+# │   │   └── scorer.py
+# │   ├── __init__.py
+# │   └── streamlit_app.py
+# └── jupyter notebooks/
+#     ├── 01_EDA_and_DATA_prep.ipynb
+#     ├── 02_BERT_EMBEDDINGS.ipynb
+#     └── 03_BERT_FINETUNEipynb.ipynb
