@@ -1,7 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Explicit CPU-only Torch (drops ~400MB of CUDA memory overhead)
-torch==2.2.2+cpu
+# CPU-only PyTorch compatible with latest transformers (no CUDA bloat)
+torch>=2.5.1+cpu
 
 # ── Backend: web framework ──
 fastapi>=0.110
@@ -13,7 +13,7 @@ python-dotenv>=1.0
 # ── Backend: NLP / ML ──
 spacy>=3.7,<4.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
-sentence-transformers>=2.5
+sentence-transformers>=2.5,<4.0
 numpy>=1.26
 rapidfuzz>=3.6
 
