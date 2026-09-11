@@ -1,191 +1,144 @@
 import logging
-import gc
-from typing import List, Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import Response
-from starlette.concurrency import run_in_threadpool
+import spacy
+from sentence_transformers import SentenceTransformer
 
-from backend.api.auth import get_current_user
-from backend.models.schemas import AnalysisResponse, ComponentScores, JDComparison, SkillValidationDetails
-from backend.core.model_loader import get_spacy_model, get_sentence_embedder
+from backend.services.groq_parser import parse_job_description, parse_resume
+from backend.services.ats_scorer import (
+    calculate_overall_score,
+    detect_location_info,
+    generate_critical_issues,
+    generate_improvements,
+    generate_strengths,
+    validate_skills_with_projects,
+)
+from backend.services.jd_matcher import compare_resume_with_jd
 
-logger = logging.getLogger('ats_resume_scorer')
-
-router = APIRouter(prefix='/api/v1', tags=['Analysis'])
+logger = logging.getLogger("ats_resume_scorer")
 
 
-@router.post('/analyze-resume', response_model=AnalysisResponse)
-async def analyze_resume(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    resume: UploadFile = File(..., description='Resume file — PDF or DOCX, max 5 MB'),
-    job_description: str = Form('', description='Job description text (optional)'),
-    user_id: str = Depends(get_current_user),
-):
-    nlp = get_spacy_model()
-    embedder = get_sentence_embedder()
+def analyze_full_resume(
+    resume_text: str,
+    nlp: spacy.Language,
+    embedder: SentenceTransformer,
+    job_description: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Main orchestrator that parses the resume with Groq LLM, runs local NLP
+    scoring (structure, skill validation, ATS privacy), compares with JD
+    if provided, and builds the unified analysis dictionary.
+    """
+    logger.info("Step 1: Parsing resume with Groq LLM...")
+    parsed_resume = parse_resume(resume_text)
 
-    try:
-        file_bytes = await resume.read()
-        filename = resume.filename or 'resume'
+    skills = parsed_resume.get("skills", [])
+    keywords = parsed_resume.get("keywords", [])
+    action_verbs = parsed_resume.get("action_verbs", [])
+    projects = parsed_resume.get("projects", [])
+    experience = parsed_resume.get("experience", [])
 
-        from backend.services.resume_parser import parse_resume_file
-        resume_text, _metadata = parse_resume_file(file_bytes, filename)
-        logger.info(f"Parsed '{filename}': {len(resume_text)} chars extracted")
-
-    except Exception as exc:
-        logger.error(f'File parsing failed: {exc}')
-        raise HTTPException(
-            status_code=422,
-            detail=f'Could not read or parse the resume: {exc}',
-        )
-
-    try:
-        from backend.services.resume_analyzer import analyze_full_resume
-        result = await run_in_threadpool(
-            analyze_full_resume,
-            resume_text=resume_text,
-            nlp=nlp,
-            embedder=embedder,
-            job_description=job_description
-        )
-    except Exception as exc:
-        logger.error(f'Full analysis pipeline failed: {exc}')
-        raise HTTPException(status_code=500, detail=f'Analysis pipeline failed: {exc}')
-    finally:
-        gc.collect()
-
-    jd_comparison_result = None
-    if result.get('jd_comparison'):
-        jd_comparison_result = JDComparison(
-            match_percentage=round(float(result['jd_comparison'].get('match_percentage', 0.0)), 1),
-            semantic_similarity=round(float(result['jd_comparison'].get('semantic_similarity', 0.0)), 3),
-            matched_keywords=result['jd_comparison'].get('matched_keywords', [])[:20],
-            missing_keywords=result['jd_comparison'].get('missing_keywords', [])[:15],
-            skills_gap=result['jd_comparison'].get('skills_gap', [])[:10],
-        )
-
-    detailed_fb = result.get('detailed_feedback', [])
-    svd_raw = result.get('skill_validation_details') or {}
-    skill_val_details = SkillValidationDetails(
-        validated=svd_raw.get('validated', []),
-        unvalidated=svd_raw.get('unvalidated', []),
-        total=svd_raw.get('total', 0),
-        validated_count=svd_raw.get('validated_count', 0),
-        validation_pct=svd_raw.get('validation_pct', 0.0),
+    exp_months = sum(
+        e.get("duration_months", 0) for e in experience if isinstance(e, dict)
     )
 
-    response = AnalysisResponse(
-        ATS_score=result['ats_score'],
-        component_scores=ComponentScores(**result['component_scores']),
-        issues_summary=result['issues_summary'],
-        detailed_feedback=detailed_fb,
-        jd_match_analysis=jd_comparison_result,
-        skill_validation_details=skill_val_details,
-        ats_score=result['ats_score'],
-        keyword_match=jd_comparison_result.match_percentage if jd_comparison_result else 0.0,
-        missing_keywords=result.get('missing_keywords', []),
-        matched_keywords=result.get('matched_keywords', []),
-        skills=list(result.get('skills', [])[:20]),
-        jd_comparison=jd_comparison_result,
-        interpretation=result.get('interpretation', '')
+    logger.info("Step 2: Checking privacy & location formatting...")
+    location_results = detect_location_info(resume_text, nlp)
+
+    logger.info("Step 3: Validating skills against projects/experience...")
+    skill_val_results = validate_skills_with_projects(
+        skills=skills,
+        projects=projects,
+        experience_entries=experience,
+        embedder=embedder,
     )
 
-    try:
-        from backend.database.supabase_db import save_analysis
-        background_tasks.add_task(save_analysis, user_id, filename, result)
-    except Exception as exc:
-        logger.warning(f'Could not schedule history save: {exc}')
+    jd_comparison = None
+    jd_keywords = []
 
-    return response
+    if job_description and job_description.strip():
+        logger.info("Step 4: Parsing Job Description and running semantic matching...")
+        try:
+            jd_parsed = parse_job_description(job_description)
+            jd_keywords = jd_parsed.get("keywords", []) + jd_parsed.get("required_skills", [])
+            jd_comparison = compare_resume_with_jd(
+                resume_text=resume_text,
+                resume_keywords=keywords,
+                resume_skills=skills,
+                jd_text=job_description,
+                jd_keywords=jd_keywords,
+                embedder=embedder,
+                nlp=nlp,
+            )
+        except Exception as exc:
+            logger.warning(f"JD comparison failed, continuing with base scoring: {exc}")
 
+    grammar_results = {"penalty_applied": 0.0, "total_errors": 0, "critical_errors": []}
 
-@router.get('/health')
-async def health_check():
+    logger.info("Step 5: Calculating overall score components...")
+    scores = calculate_overall_score(
+        text=resume_text,
+        parsed_resume=parsed_resume,
+        skills=skills,
+        keywords=keywords,
+        action_verbs=action_verbs,
+        skill_validation_results=skill_val_results,
+        grammar_results=grammar_results,
+        location_results=location_results,
+        jd_keywords=jd_keywords if jd_keywords else None,
+        experience_months=exp_months,
+    )
+
+    strengths = generate_strengths(scores, skill_val_results, grammar_results)
+    issues = generate_critical_issues(scores, grammar_results, location_results)
+    improvements = generate_improvements(scores, skill_val_results)
+
+    raw_validated = skill_val_results.get("validated_skills", [])
+    validated_dicts = []
+    for item in raw_validated:
+        if isinstance(item, dict):
+            validated_dicts.append({
+                "skill": item.get("skill", ""),
+                "projects": item.get("projects", []),
+                "similarity": float(item.get("similarity", 1.0)),
+            })
+        else:
+            validated_dicts.append({
+                "skill": str(item),
+                "projects": [],
+                "similarity": 1.0,
+            })
+
+    unvalidated_list = [
+        item if isinstance(item, str) else item.get("skill", "")
+        for item in skill_val_results.get("unvalidated_skills", [])
+    ]
+
     return {
-        'status': 'healthy',
-        'ready': True
+        "ats_score": scores["overall_score"],
+        "component_scores": {
+            "formatting": scores["formatting_score"],
+            "keywords": scores["keywords_score"],
+            "content": scores["content_score"],
+            "skill_validation": scores["skill_validation_score"],
+            "ats_compatibility": scores["ats_compatibility_score"],
+        },
+        "issues_summary": issues,
+        "detailed_feedback": improvements,
+        "strengths": strengths,
+        "critical_issues": issues,
+        "suggestions": improvements,
+        "jd_comparison": jd_comparison,
+        "skill_validation_details": {
+            "validated": validated_dicts,
+            "unvalidated": unvalidated_list,
+            "total": len(skills),
+            "validated_count": len(validated_dicts),
+            "validation_pct": round(float(skill_val_results.get("validation_percentage", 0.0) * 100), 1),
+        },
+        "matched_keywords": jd_comparison.get("matched_keywords", []) if jd_comparison else keywords[:15],
+        "missing_keywords": jd_comparison.get("missing_keywords", []) if jd_comparison else [],
+        "skills": skills,
+        "interpretation": scores.get("overall_interpretation", ""),
+        "parsed_resume": parsed_resume,
     }
-
-
-@router.get('/history')
-async def get_history(user_id: str = Depends(get_current_user)):
-    from backend.database.supabase_db import get_user_history
-    try:
-        return await get_user_history(user_id)
-    except Exception as exc:
-        logger.error(f'History fetch failed: {exc}')
-        raise HTTPException(status_code=500, detail=f'Could not load history: {exc}')
-
-
-@router.delete('/history/{analysis_id}')
-async def delete_history_entry(
-    analysis_id: str,
-    user_id: str = Depends(get_current_user),
-):
-    from backend.database.supabase_db import delete_analysis
-    try:
-        success = await delete_analysis(analysis_id, user_id)
-        if not success:
-            raise HTTPException(status_code=404, detail='Analysis not found or not owned by this user.')
-        return {'status': 'deleted', 'id': analysis_id}
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error(f'History delete failed: {exc}')
-        raise HTTPException(status_code=500, detail=f'Could not delete: {exc}')
-
-
-def _build_pdf_worker(analysis_dict: dict) -> bytes:
-    """Helper executed in a worker thread to keep the event loop free."""
-    from backend.services.pdf_export import generate_combined_pdf
-    from backend.services.report_generator import generate_html_reports
-    
-    html_docs = generate_html_reports(analysis_dict)
-    return generate_combined_pdf(html_docs)
-
-
-@router.post('/generate-pdf')
-async def generate_pdf(
-    data: AnalysisResponse,
-    user_id: str = Depends(get_current_user),
-):
-    try:
-        payload = data.model_dump()
-        pdf_bytes = await run_in_threadpool(_build_pdf_worker, payload)
-
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": "attachment; filename=ats_report.pdf"}
-        )
-    except Exception as e:
-        logger.error(f'Failed to generate PDF: {e}')
-        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {e}")
-
-
-@router.get('/history/{analysis_id}/pdf')
-async def generate_history_pdf(
-    analysis_id: str,
-    user_id: str = Depends(get_current_user),
-):
-    from backend.database.supabase_db import get_user_history
-
-    history = await get_user_history(user_id)
-    analysis_data = next((item["analysis_result"] for item in history if item["id"] == analysis_id), None)
-
-    if not analysis_data:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-
-    try:
-        pdf_bytes = await run_in_threadpool(_build_pdf_worker, analysis_data)
-
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=ats_report_{analysis_id}.pdf"}
-        )
-    except Exception as e:
-        logger.error(f'Failed to generate PDF for history: {e}')
-        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {e}")

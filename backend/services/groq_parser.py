@@ -1,25 +1,68 @@
 import json
 import logging
 import os
-from typing import Dict
-
+from typing import Dict, List, Optional
+from dotenv import load_dotenv
 from groq import Groq
+
+load_dotenv()
 
 logger = logging.getLogger('ats_resume_scorer')
 
-# Active standard production Groq model
-GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
-_client = None
+_client: Optional[Groq] = None
+_resolved_model: Optional[str] = None
+
+# Active models available on your Groq key
+AVAILABLE_CHAT_MODELS: List[str] = [
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.8-27b',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3.6-27b',
+]
 
 
 def _get_client() -> Groq:
     global _client
     if _client is None:
+        load_dotenv()
         api_key = os.getenv('GROQ_API_KEY')
         if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable not set")
+            raise ValueError("GROQ_API_KEY environment variable not set. Please check your .env file.")
         _client = Groq(api_key=api_key, timeout=30.0)
     return _client
+
+
+def _get_active_model(client: Groq) -> str:
+    global _resolved_model
+    if _resolved_model:
+        return _resolved_model
+
+    env_model = os.getenv('GROQ_MODEL')
+    try:
+        models_data = client.models.list().data
+        available_ids = {m.id for m in models_data}
+
+        if env_model and env_model in available_ids:
+            _resolved_model = env_model
+            return _resolved_model
+
+        for candidate in AVAILABLE_CHAT_MODELS:
+            if candidate in available_ids:
+                _resolved_model = candidate
+                logger.info(f"Using verified Groq model: {_resolved_model}")
+                return _resolved_model
+
+        # Fallback to the first non-whisper/non-guard model
+        for mid in available_ids:
+            if not any(k in mid.lower() for k in ['whisper', 'guard', 'orpheus']):
+                _resolved_model = mid
+                return _resolved_model
+
+        _resolved_model = 'openai/gpt-oss-120b'
+        return _resolved_model
+    except Exception as exc:
+        logger.warning(f"Error checking models ({exc}), defaulting to openai/gpt-oss-120b")
+        return 'openai/gpt-oss-120b'
 
 
 RESUME_SYSTEM_PROMPT = (
@@ -88,15 +131,16 @@ Job Description Text:
 {raw_text}"""
 
 
-def _call_groq_json(client: Groq, system_prompt: str, user_prompt: str) -> str:
+def _call_groq_json(client: Groq, system_prompt: str, user_prompt: str, max_tokens: int = 2048) -> str:
+    model_name = _get_active_model(client)
     response = client.chat.completions.create(
-        model=GROQ_MODEL,
+        model=model_name,
         messages=[
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt}
         ],
         temperature=0.1,
-        max_tokens=4096,
+        max_tokens=max_tokens,
         response_format={"type": "json_object"},
         timeout=30.0
     )
@@ -120,34 +164,33 @@ def _try_parse_json(text: str) -> dict | None:
 
 def parse_resume(raw_text: str) -> Dict:
     client = _get_client()
-    prompt = RESUME_USER_PROMPT.format(raw_text=raw_text[:7000])
+    prompt = RESUME_USER_PROMPT.format(raw_text=raw_text[:6500])
 
     try:
-        raw_response = _call_groq_json(client, RESUME_SYSTEM_PROMPT, prompt)
+        raw_response = _call_groq_json(client, RESUME_SYSTEM_PROMPT, prompt, max_tokens=2048)
         result = _try_parse_json(raw_response)
         if result is not None:
             return _validate_resume_result(result)
     except Exception as e:
         logger.warning(f"Groq primary resume parse attempt failed: {e}")
 
-    # Fallback retry attempt
-    logger.warning("Groq resume parse: retrying with strict prompt...")
+    logger.warning("Groq resume parse: retrying with concise prompt...")
     strict_prompt = prompt + "\n\nCRITICAL: Keep descriptions brief to ensure the JSON does not truncate."
-    raw_response = _call_groq_json(client, RESUME_SYSTEM_PROMPT, strict_prompt)
+    raw_response = _call_groq_json(client, RESUME_SYSTEM_PROMPT, strict_prompt, max_tokens=1024)
     result = _try_parse_json(raw_response)
 
     if result is not None:
         return _validate_resume_result(result)
 
-    raise ValueError(f"Groq returned unparseable response. Output: {raw_response[:300]}")
+    raise ValueError(f"Groq returned unparseable response: {raw_response[:300]}")
 
 
 def parse_job_description(raw_text: str) -> Dict:
     client = _get_client()
-    prompt = JD_USER_PROMPT.format(raw_text=raw_text[:5000])
+    prompt = JD_USER_PROMPT.format(raw_text=raw_text[:4500])
 
     try:
-        raw_response = _call_groq_json(client, JD_SYSTEM_PROMPT, prompt)
+        raw_response = _call_groq_json(client, JD_SYSTEM_PROMPT, prompt, max_tokens=1500)
         result = _try_parse_json(raw_response)
         if result is not None:
             return _validate_jd_result(result)
@@ -155,13 +198,13 @@ def parse_job_description(raw_text: str) -> Dict:
         logger.warning(f"Groq JD parse attempt failed: {e}")
 
     strict_prompt = prompt + "\n\nCRITICAL: Keep output concise and return valid JSON."
-    raw_response = _call_groq_json(client, JD_SYSTEM_PROMPT, strict_prompt)
+    raw_response = _call_groq_json(client, JD_SYSTEM_PROMPT, strict_prompt, max_tokens=800)
     result = _try_parse_json(raw_response)
 
     if result is not None:
         return _validate_jd_result(result)
 
-    raise ValueError(f"Groq JD unparseable response. Output: {raw_response[:300]}")
+    raise ValueError(f"Groq JD unparseable response: {raw_response[:300]}")
 
 
 def _validate_jd_result(result: dict) -> dict:

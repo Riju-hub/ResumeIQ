@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import streamlit as st
 
@@ -8,11 +8,60 @@ from frontend.components._helpers import get_severity_style
 SEVERITY_ORDER = ["critical", "high", "medium", "low"]
 
 
-def _group_by_severity(issues: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def _normalize_issue(issue: Union[Dict[str, Any], str, Any]) -> Dict[str, Any]:
+    """Converts dictionaries, Pydantic models, or raw strings into a uniform dict."""
+    if isinstance(issue, str):
+        return {
+            "issue_title": issue,
+            "severity_level": "medium",
+            "ats_impact": "Moderate impact on ATS matching",
+            "explanation": issue,
+            "where_it_appears": "General Resume Content",
+            "how_to_fix": "Review the relevant section of your resume to address this point.",
+            "action_items": [],
+            "example_improvement": "",
+        }
+
+    # If it's a Pydantic model
+    if hasattr(issue, "model_dump"):
+        issue = issue.model_dump()
+    elif hasattr(issue, "dict"):
+        issue = issue.dict()
+
+    if isinstance(issue, dict):
+        return {
+            "issue_title": issue.get("issue_title") or issue.get("title") or "Improvement Suggestion",
+            "severity_level": str(issue.get("severity_level") or issue.get("severity") or "medium").lower(),
+            "ats_impact": issue.get("ats_impact") or "Moderate",
+            "explanation": issue.get("explanation") or "",
+            "where_it_appears": issue.get("where_it_appears") or "",
+            "how_to_fix": issue.get("how_to_fix") or "",
+            "action_items": issue.get("action_items") or [],
+            "example_improvement": issue.get("example_improvement") or "",
+        }
+
+    return {
+        "issue_title": str(issue),
+        "severity_level": "medium",
+        "ats_impact": "Noticeable",
+        "explanation": str(issue),
+        "where_it_appears": "General",
+        "how_to_fix": "Review and update this section.",
+        "action_items": [],
+        "example_improvement": "",
+    }
+
+
+def _group_by_severity(issues: List[Union[Dict[str, Any], str]]) -> Dict[str, List[Dict[str, Any]]]:
     grouped: Dict[str, List[Dict[str, Any]]] = {level: [] for level in SEVERITY_ORDER}
-    for issue in issues:
-        level = (issue.get("severity_level") or "low").lower()
-        grouped.setdefault(level, []).append(issue)
+
+    for item in issues:
+        norm_issue = _normalize_issue(item)
+        level = norm_issue.get("severity_level", "medium")
+        if level not in grouped:
+            level = "medium"
+        grouped[level].append(norm_issue)
+
     return grouped
 
 
@@ -56,7 +105,7 @@ def _render_issue(issue: Dict[str, Any]) -> None:
 def display_detailed_feedback(analysis: Dict[str, Any]) -> None:
     issues = analysis.get("detailed_feedback") or []
     if not issues:
-        return  # backend produced no per-issue feedback this run
+        return
 
     st.markdown("### 🔍 Detailed Feedback")
     st.caption(f"{len(issues)} issue(s) flagged — grouped by severity.")
