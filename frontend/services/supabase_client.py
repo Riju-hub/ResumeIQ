@@ -59,7 +59,7 @@ SUPABASE_ANON_KEY = _secret('SUPABASE_ANON_KEY')
 OAUTH_REDIRECT_URL = (
     os.getenv('AUTH_REDIRECT_URL')
     or _secret('redirect_uri', 'google_oauth')
-    or 'https://resumeiq-jxzub6fh22sedvgffpftsr.streamlit.app'
+    or 'https://resumeiq-jxzub6fh22sedvgffpftsr.streamlit.app/'
 )
 
 
