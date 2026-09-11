@@ -1,61 +1,64 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import requests
 import streamlit as st
 
-DEFAULT_BACKEND_URL = "http://localhost:8000"
-
+PROD_BACKEND_URL = "https://resumeiq-backend-awry.onrender.com"
+# PROD_BACKEND_URL = "localhost:8000"  # For local development
 
 def _backend_url() -> str:
-    # 1. Check OS environment variable (used by Render / Docker / local shell)
-    url = os.getenv("BACKEND_URL")
-    if url:
-        return url.rstrip("/")
+    """Resolves the backend URL across secrets, env vars, and production fallback."""
+    # 1. Check Streamlit secrets (flat or nested)
+    if hasattr(st, "secrets"):
+        if "BACKEND_URL" in st.secrets and st.secrets["BACKEND_URL"]:
+            return str(st.secrets["BACKEND_URL"]).strip().rstrip("/")
+        if "backend" in st.secrets and "url" in st.secrets["backend"]:
+            return str(st.secrets["backend"]["url"]).strip().rstrip("/")
 
-    # 2. Check flat Streamlit secret: BACKEND_URL = "..."
-    if hasattr(st, "secrets") and "BACKEND_URL" in st.secrets:
-        return str(st.secrets["BACKEND_URL"]).rstrip("/")
+    # 2. Check OS environment variable
+    env_url = os.getenv("BACKEND_URL", "").strip()
+    if env_url:
+        return env_url.rstrip("/")
 
-    # 3. Check nested Streamlit secret: [backend] url = "..."
-    if hasattr(st, "secrets") and "backend" in st.secrets and "url" in st.secrets["backend"]:
-        return str(st.secrets["backend"]["url"]).rstrip("/")
-
-    # 4. Fallback to default localhost
-    return DEFAULT_BACKEND_URL
+    # 3. Cloud / Local fallback
+    return PROD_BACKEND_URL
 
 
-def _auth_headers(access_token: str) -> Dict[str, str]:
+def _auth_headers(access_token: Optional[str]) -> Dict[str, str]:
     if not access_token:
         return {}
     return {"Authorization": f"Bearer {access_token}"}
 
 
 def health_check() -> Dict[str, Any]:
-    url = f"{_backend_url()}/api/v1/health"
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-    return response.json()
+    try:
+        url = f"{_backend_url()}/api/v1/health"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        return {"status": "unhealthy", "code": response.status_code}
+    except Exception as exc:
+        return {"status": "offline", "error": str(exc)}
 
 
 def analyze_resume(
     resume_file,
-    access_token: str,
+    access_token: Optional[str] = None,
     job_description: str = "",
 ) -> Dict[str, Any]:
-    # FastAPI expects UploadFile parameter named 'file' or 'resume'
-    # Ensure parameter name matches routes.py (usually 'file' or 'resume')
     files = {
         "file": (resume_file.name, resume_file.getvalue(), resume_file.type or "application/pdf"),
     }
     data = {"job_description": job_description}
     headers = _auth_headers(access_token)
 
+    url = f"{_backend_url()}/api/v1/analyze-resume"
     response = requests.post(
-        f"{_backend_url()}/api/v1/analyze-resume",
+        url,
         files=files,
         data=data,
         headers=headers,
-        timeout=(20, 240),  # 20s connect, 240s processing for LLM + NLP
+        timeout=(20, 240),
     )
     response.raise_for_status()
     return response.json()
@@ -80,7 +83,7 @@ def delete_history_entry(analysis_id: str, access_token: str) -> None:
     response.raise_for_status()
 
 
-def generate_pdf(analysis_data: Dict[str, Any], access_token: str) -> bytes:
+def generate_pdf(analysis_data: Dict[str, Any], access_token: Optional[str] = None) -> bytes:
     response = requests.post(
         f"{_backend_url()}/api/v1/generate-pdf",
         json=analysis_data,

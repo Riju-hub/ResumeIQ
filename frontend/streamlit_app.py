@@ -2,14 +2,14 @@ import sys
 from pathlib import Path
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from frontend.services.api_client import health_check
 
 st.set_page_config(
     page_title="ResumeIQ — AI Powered ATS Platform",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # 1. State Initialization
@@ -21,7 +21,7 @@ for key, default in [
     ("auth_error", None),
     ("auth_info", None),
     ("auth_mode", "signin"),
-    ("current_view", "landing")
+    ("current_view", "landing"),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -34,19 +34,21 @@ if not st.session_state.access_token and "code" in st.query_params:
     if "error" in result:
         st.session_state.auth_error = f"Sign-in error: {result['error']}"
     else:
-        st.session_state.access_token = result["access_token"]
-        st.session_state.refresh_token = result["refresh_token"]
-        st.session_state.user_id = result["user_id"]
-        st.session_state.user_email = result["email"]
+        st.session_state.access_token = result.get("access_token")
+        st.session_state.refresh_token = result.get("refresh_token")
+        st.session_state.user_id = result.get("user_id")
+        st.session_state.user_email = result.get("email")
         st.rerun()
 
 def load_css():
     try:
-        css_path = Path(__file__).parent / "assets" / "styles.css"
-        with open(css_path, "r") as f:
-            return f"<style>{f.read()}</style>"
-    except FileNotFoundError:
-        return ""
+        css_path = Path(__file__).resolve().parent / "assets" / "styles.css"
+        if css_path.exists():
+            with open(css_path, "r", encoding="utf-8") as f:
+                return f"<style>{f.read()}</style>"
+    except Exception:
+        pass
+    return ""
 
 st.markdown(load_css(), unsafe_allow_html=True)
 
@@ -196,12 +198,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 @st.cache_data(ttl=30)
 def check_backend_status():
     try:
-        return health_check()
+        res = health_check()
+        if isinstance(res, dict) and res.get("status") == "healthy":
+            return {"status": "healthy"}
+        return {"status": "offline"}
     except Exception:
-        return None
+        return {"status": "offline"}
+
 
 # 4. Modern Sidebar Layout
 with st.sidebar:
@@ -237,7 +244,7 @@ with st.sidebar:
     if status and status.get("status") == "healthy":
         st.markdown('<div class="status-badge"><span class="pulse-dot"></span> ATS Engine Online • Live</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="status-badge-offline"><span style="width:8px; height:8px; background:#F43F5E; border-radius:50%; display:inline-block; margin-right:8px;"></span> Engine Disconnected</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status-badge-offline"><span style="width:8px; height:8px; background:#F43F5E; border-radius:50%; display:inline-block; margin-right:8px;"></span> Engine Offline / Idle</div>', unsafe_allow_html=True)
 
     # Navigation Section
     st.markdown("<div style='font-size:0.72rem; font-weight:700; letter-spacing:0.08em; color:#64748B; margin-bottom:0.5rem;'>PLATFORM NAVIGATION</div>", unsafe_allow_html=True)
@@ -262,6 +269,10 @@ with st.sidebar:
     st.markdown("<hr style='margin: 1.25rem 0; border: 0; border-top: 1px solid #E2E8F0;'>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:0.72rem; font-weight:700; letter-spacing:0.08em; color:#64748B; margin-bottom:0.6rem;'>AUTHENTICATION</div>", unsafe_allow_html=True)
 
+    if st.session_state.auth_error:
+        st.error(st.session_state.auth_error)
+        st.session_state.auth_error = None
+
     from frontend.services import supabase_client
     if st.session_state.access_token:
         st.markdown(
@@ -281,7 +292,6 @@ with st.sidebar:
                 st.session_state[k] = None
             st.rerun()
     else:
-        # Segmented Pill Switcher
         col_t1, col_t2 = st.columns(2, gap="small")
         with col_t1:
             if st.button("Sign In", key="btn_auth_signin", use_container_width=True, type="primary" if st.session_state.auth_mode == "signin" else "secondary"):
@@ -317,7 +327,7 @@ with st.sidebar:
                     if "error" in res:
                         st.error(res["error"])
                     elif res.get("pending_confirmation"):
-                        st.info("Check inbox for confirmation link.")
+                        st.info("Check your inbox for the confirmation link.")
                     else:
                         st.session_state.access_token = res["access_token"]
                         st.session_state.refresh_token = res["refresh_token"]
