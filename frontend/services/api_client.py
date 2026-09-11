@@ -47,7 +47,7 @@ def analyze_resume(
     job_description: str = "",
 ) -> Dict[str, Any]:
     files = {
-        "file": (resume_file.name, resume_file.getvalue(), resume_file.type or "application/pdf"),
+        "resume": (resume_file.name, resume_file.getvalue(), resume_file.type or "application/pdf"),
     }
     data = {"job_description": job_description}
     headers = _auth_headers(access_token)

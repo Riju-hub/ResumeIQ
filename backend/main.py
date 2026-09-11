@@ -54,7 +54,7 @@ app.add_middleware(
 )
 
 # Prefix all API router endpoints under /api/v1
-app.include_router(router, prefix="/api/v1")
+app.include_router(router)
 
 
 @app.get('/')
