@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>ATS Resume Score Report</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@600;700;800&display=swap');
 
         @page {
             size: A4;
@@ -21,80 +21,121 @@
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
             margin: 0;
-            padding: 38px 46px;
+            padding: 36px 44px;
             line-height: 1.55;
-            background-color: #f8fafc;
+            background-color: #0b0f19;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.13) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.11) 0px, transparent 45%),
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.09) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.12) 0px, transparent 45%);
+                radial-gradient(at 5% 5%, rgba(99, 102, 241, 0.22) 0px, transparent 45%),
+                radial-gradient(at 95% 10%, rgba(244, 63, 94, 0.20) 0px, transparent 40%),
+                radial-gradient(at 90% 90%, rgba(6, 182, 212, 0.18) 0px, transparent 45%),
+                radial-gradient(at 10% 95%, rgba(168, 85, 247, 0.20) 0px, transparent 40%),
+                radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.10) 0px, transparent 55%);
             background-repeat: no-repeat;
             background-attachment: fixed;
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
         }
 
-        /* ── Header ── */
+        /* ── Full Background "ResumeIQ" Watermark ── */
+        .watermark-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            opacity: 0.035;
+        }
+
+        .watermark-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 105px;
+            font-weight: 900;
+            letter-spacing: 12px;
+            color: #ffffff;
+            text-transform: uppercase;
+            transform: rotate(-18deg);
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Modern Header ── */
         .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding-bottom: 14px;
-            margin-bottom: 24px;
-            border-bottom: 1.5px solid rgba(226, 232, 240, 0.8);
+            margin-bottom: 22px;
+            border-bottom: 1.5px solid rgba(255, 255, 255, 0.12);
         }
 
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .brand-logo {
-            width: 34px;
-            height: 34px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
-            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #f43f5e 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            font-weight: 800;
-            font-size: 16px;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+            font-weight: 900;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), 0 0 10px rgba(244, 63, 94, 0.3);
         }
 
         .brand-text {
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 1.5px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+            background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #fb7185 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .header-meta {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            font-weight: 600;
-            color: #64748b;
-            background: #ffffff;
-            padding: 6px 14px;
+            font-weight: 700;
+            color: #38bdf8;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 6px 16px;
             border-radius: 999px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.03);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
         }
 
-        /* ── Hero Score Card ── */
+        /* ── Hero Overall Score Card ── */
         .hero-score-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 24px 28px;
-            margin-bottom: 26px;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(255, 255, 255, 0.14);
+            border-radius: 20px;
+            padding: 22px 28px;
+            margin-bottom: 22px;
             text-align: center;
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.04), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.15);
         }
 
         .hero-score-card::before {
@@ -104,91 +145,119 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #4f46e5 0%, #ec4899 50%, #10b981 100%);
+            background: linear-gradient(90deg, #6366f1 0%, #06b6d4 33%, #ec4899 66%, #10b981 100%);
+            box-shadow: 0 0 15px #06b6d4;
         }
 
         .score-pill-tag {
-            display: inline-block;
-            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10.5px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #4f46e5;
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
+            letter-spacing: 1.5px;
+            color: #f43f5e;
+            background: rgba(244, 63, 94, 0.12);
+            border: 1px solid rgba(244, 63, 94, 0.35);
             padding: 4px 14px;
             border-radius: 999px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .score-display-wrap {
             display: flex;
             align-items: baseline;
             justify-content: center;
-            gap: 4px;
-            margin-bottom: 6px;
+            gap: 6px;
+            margin-bottom: 4px;
         }
 
         .score-number {
-            font-size: 68px;
-            font-weight: 800;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 64px;
+            font-weight: 900;
             line-height: 1;
             letter-spacing: -2px;
+            text-shadow: 0 0 25px rgba(99, 102, 241, 0.4);
         }
 
         .score-denom {
-            font-size: 26px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
             font-weight: 700;
-            color: #94a3b8;
+            color: #64748b;
         }
 
         .score-interpretation {
-            font-size: 13.5px;
+            font-size: 13px;
             font-weight: 600;
-            color: #475569;
+            color: #94a3b8;
             max-width: 580px;
             margin: 6px auto 0 auto;
+            line-height: 1.45;
         }
 
-        /* ── Section Dividers ── */
+        /* ── Section Dividers & Badges ── */
         .section-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 26px 0 14px 0;
+            margin: 22px 0 12px 0;
         }
 
+        .section-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .badge-icon-pink { background: rgba(244, 63, 94, 0.18); border: 1px solid rgba(244, 63, 94, 0.4); color: #fb7185; }
+        .badge-icon-cyan { background: rgba(6, 182, 212, 0.18); border: 1px solid rgba(6, 182, 212, 0.4); color: #38bdf8; }
+        .badge-icon-green { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+        .badge-icon-red { background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+
         .section-header h2 {
-            font-size: 12.5px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             margin: 0;
-            color: #1e293b;
         }
+
+        .sh-pink { color: #fb7185; }
+        .sh-cyan { color: #38bdf8; }
+        .sh-green { color: #34d399; }
+        .sh-red { color: #f87171; }
 
         .section-line {
             flex: 1;
             height: 1px;
-            background: #e2e8f0;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
         }
 
-        /* ── Score Breakdown Container ── */
+        /* ── Score Breakdown Grid ── */
         .breakdown-grid {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 16px 20px;
-            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-            margin-bottom: 20px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 16px;
+            padding: 14px 18px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            margin-bottom: 18px;
         }
 
         .breakdown-row {
             display: flex;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
-            gap: 16px;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 14px;
         }
 
         .breakdown-row:last-child {
@@ -196,29 +265,29 @@
         }
 
         .breakdown-label-box {
-            width: 170px;
+            width: 175px;
             flex-shrink: 0;
         }
 
         .breakdown-name {
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 700;
-            color: #1e293b;
+            color: #f1f5f9;
         }
 
         .breakdown-sublabel {
-            font-size: 10px;
-            color: #94a3b8;
+            font-size: 9.5px;
+            color: #64748b;
             font-weight: 500;
         }
 
         .breakdown-bar-wrap {
             flex: 1;
-            background: #f1f5f9;
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 999px;
-            height: 9px;
+            height: 8px;
             overflow: hidden;
-            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .breakdown-bar-fill {
@@ -227,36 +296,36 @@
             transition: width 0.3s ease;
         }
 
-        .bar-green { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
-        .bar-amber { background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); }
-        .bar-red   { background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%); }
+        .bar-green { background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .bar-amber { background: linear-gradient(90deg, #f59e0b 0%, #f43f5e 100%); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .bar-red   { background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%); box-shadow: 0 0 10px rgba(244, 63, 94, 0.5); }
 
         .breakdown-score {
-            width: 70px;
+            width: 65px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 11.5px;
+            font-weight: 800;
             text-align: right;
             flex-shrink: 0;
-            color: #0f172a;
+            color: #38bdf8;
         }
 
-        /* ── Strengths ── */
+        /* ── Strengths Container ── */
         .strengths-container {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-bottom: 20px;
+            gap: 7px;
+            margin-bottom: 18px;
         }
 
         .strength-item {
-            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-            border: 1px solid #bbf7d0;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             border-left: 4px solid #10b981;
             border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 12.5px;
-            color: #065f46;
+            padding: 9px 14px;
+            font-size: 12px;
+            color: #a7f3d0;
             font-weight: 500;
             display: flex;
             align-items: flex-start;
@@ -266,171 +335,187 @@
 
         .strength-item::before {
             content: "✦";
-            font-weight: 800;
-            color: #10b981;
+            font-weight: 900;
+            color: #34d399;
             flex-shrink: 0;
         }
 
         /* ── Critical Issues ── */
         .issue-card {
-            background: #ffffff;
-            border: 1px solid #fecaca;
-            border-left: 4px solid #ef4444;
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-left: 4px solid #f43f5e;
             border-radius: 12px;
             padding: 12px 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.05);
+            margin-bottom: 10px;
             page-break-inside: avoid;
         }
 
         .issue-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #991b1b;
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #fecdd3;
             margin: 0 0 4px 0;
         }
 
         .issue-meta {
-            font-size: 12px;
-            color: #475569;
+            font-size: 11.5px;
+            color: #cbd5e1;
             margin: 0 0 8px 0;
             line-height: 1.45;
         }
 
         .issue-fix {
-            font-size: 11.5px;
-            color: #047857;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
+            font-size: 11px;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             padding: 6px 10px;
             border-radius: 6px;
             line-height: 1.4;
         }
 
         .issue-fix strong {
-            color: #065f46;
+            color: #34d399;
             text-transform: uppercase;
-            font-size: 10.5px;
+            font-size: 10px;
             letter-spacing: 0.5px;
         }
 
         /* ── Footer ── */
         .footer {
-            margin-top: 36px;
-            padding-top: 14px;
-            border-top: 1px solid #e2e8f0;
-            font-size: 10.5px;
-            color: #94a3b8;
+            margin-top: 32px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.10);
+            font-size: 10px;
+            color: #64748b;
             font-weight: 600;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
+        .footer strong {
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
 
-    <!-- ── Page Header ── -->
-    <div class="page-header">
-        <div class="header-brand">
-            <div class="brand-logo">⚡</div>
-            <div class="brand-text">ResumeIQ Analytics</div>
-        </div>
-        <div class="header-meta">{{ timestamp | format_date }}</div>
+    <!-- ── Full-Page Modern Watermark Canvas ── -->
+    <div class="watermark-bg">
+        <div class="watermark-text">RESUMEIQ</div>
+        <div class="watermark-text">RESUMEIQ</div>
+        <div class="watermark-text">RESUMEIQ</div>
+        <div class="watermark-text">RESUMEIQ</div>
     </div>
 
-    <!-- ── Hero Overall Score ── -->
-    <div class="hero-score-card">
-        <div class="score-pill-tag">Overall Match Score</div>
-        <div class="score-display-wrap">
-            <span class="score-number" style="color: {{ score_color }};">
-                {{ "%.0f" | format(overall_score) }}
-            </span>
-            <span class="score-denom">/ 100</span>
+    <div class="content-layer">
+        <!-- ── Page Header ── -->
+        <div class="page-header">
+            <div class="header-brand">
+                <div class="brand-logo">⚡</div>
+                <div class="brand-text">ResumeIQ Analytics</div>
+            </div>
+            <div class="header-meta">{{ timestamp | format_date }}</div>
         </div>
-        {% if interpretation %}
-        <div class="score-interpretation">{{ interpretation }}</div>
-        {% else %}
-            {% if overall_score >= 80 %}
-            <div class="score-interpretation">Excellent! Your resume is highly optimized for top ATS algorithms and recruiters.</div>
-            {% elif overall_score >= 60 %}
-            <div class="score-interpretation">Solid foundation. Addressing the key recommendations will significantly boost your match rate.</div>
+
+        <!-- ── Hero Overall Score ── -->
+        <div class="hero-score-card">
+            <div class="score-pill-tag">✦ Match Intelligence Diagnostics</div>
+            <div class="score-display-wrap">
+                <span class="score-number" style="color: {{ score_color }};">
+                    {{ "%.0f" | format(overall_score) }}
+                </span>
+                <span class="score-denom">/ 100</span>
+            </div>
+            {% if interpretation %}
+            <div class="score-interpretation">{{ interpretation }}</div>
             {% else %}
-            <div class="score-interpretation">Needs optimization. Address the critical structural and keyword issues before applying.</div>
+                {% if overall_score >= 80 %}
+                <div class="score-interpretation">Outstanding! Your resume excels in standard ATS parsers, semantic relevancy, and structure.</div>
+                {% elif overall_score >= 60 %}
+                <div class="score-interpretation">Solid foundation. Addressing flagged recommendations will boost recruiter visibility.</div>
+                {% else %}
+                <div class="score-interpretation">Requires optimization. Remediate structural and keyword deficits prior to submitting.</div>
+                {% endif %}
             {% endif %}
+        </div>
+
+        <!-- ── Score Breakdown ── -->
+        <div class="section-header">
+            <div class="section-badge-icon badge-icon-cyan">📊</div>
+            <h2 class="sh-cyan">Component Breakdown</h2>
+            <div class="section-line"></div>
+        </div>
+
+        <div class="breakdown-grid">
+            {% set rows = [
+                ('Formatting & Layout',       component_scores.formatting,         20, component_pct.formatting,         'Structure, section headers, bulleting'),
+                ('Keywords & Alignment',      component_scores.keywords,           25, component_pct.keywords,           'Keyword density, skills, and industry terms'),
+                ('Content Quality & Impact',  component_scores.content,            25, component_pct.content,            'Action verbs, metrics, measurable impact'),
+                ('Skill Context Validation',  component_scores.skill_validation,   15, component_pct.skill_validation,   'Skills verified with experience context'),
+                ('ATS Parsing Compatibility', component_scores.ats_compatibility,  15, component_pct.ats_compatibility,  'Clean syntax, zero parsing blockers'),
+            ] %}
+
+            {% for label, score, max_score, pct, sublabel in rows %}
+            {% set bar_class = 'bar-green' if pct >= 75 else ('bar-amber' if pct >= 50 else 'bar-red') %}
+            <div class="breakdown-row">
+                <div class="breakdown-label-box">
+                    <div class="breakdown-name">{{ label }}</div>
+                    <div class="breakdown-sublabel">{{ sublabel }}</div>
+                </div>
+                <div class="breakdown-bar-wrap">
+                    <div class="breakdown-bar-fill {{ bar_class }}" style="width: {{ pct }}%;"></div>
+                </div>
+                <div class="breakdown-score">{{ "%.0f" | format(score) }}/{{ max_score }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ── Strengths ── -->
+        <div class="section-header">
+            <div class="section-badge-icon badge-icon-green">✨</div>
+            <h2 class="sh-green">Identified Strengths</h2>
+            <div class="section-line"></div>
+        </div>
+
+        {% if strengths %}
+        <div class="strengths-container">
+            {% for s in strengths %}
+            <div class="strength-item">{{ s }}</div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:#94a3b8; font-size:12px; margin:0 0 14px 0;">No major strengths detected. Follow the action plan to build them.</p>
         {% endif %}
-    </div>
 
-    <!-- ── Score Breakdown ── -->
-    <div class="section-header">
-        <h2>📊 Component Breakdown</h2>
-        <div class="section-line"></div>
-    </div>
-
-    <div class="breakdown-grid">
-        {% set rows = [
-            ('Formatting & Layout',       component_scores.formatting,         20, component_pct.formatting,         'Structure, section headers, bulleting'),
-            ('Keywords & Alignment',      component_scores.keywords,           25, component_pct.keywords,           'Keyword density, skills, and industry terms'),
-            ('Content Quality & Impact',  component_scores.content,            25, component_pct.content,            'Action verbs, metrics, measurable impact'),
-            ('Skill Context Validation',  component_scores.skill_validation,   15, component_pct.skill_validation,   'Skills verified with experience context'),
-            ('ATS Parsing Compatibility', component_scores.ats_compatibility,  15, component_pct.ats_compatibility,  'Clean syntax, no parsing obstructions'),
-        ] %}
-
-        {% for label, score, max_score, pct, sublabel in rows %}
-        {% set bar_class = 'bar-green' if pct >= 75 else ('bar-amber' if pct >= 50 else 'bar-red') %}
-        <div class="breakdown-row">
-            <div class="breakdown-label-box">
-                <div class="breakdown-name">{{ label }}</div>
-                <div class="breakdown-sublabel">{{ sublabel }}</div>
-            </div>
-            <div class="breakdown-bar-wrap">
-                <div class="breakdown-bar-fill {{ bar_class }}" style="width: {{ pct }}%;"></div>
-            </div>
-            <div class="breakdown-score">{{ "%.0f" | format(score) }}/{{ max_score }}</div>
+        <!-- ── Critical Issues ── -->
+        <div class="section-header">
+            <div class="section-badge-icon badge-icon-red">⚠️</div>
+            <h2 class="sh-red">High Priority Action Items</h2>
+            <div class="section-line"></div>
         </div>
-        {% endfor %}
-    </div>
 
-    <!-- ── Strengths ── -->
-    <div class="section-header">
-        <h2>✨ Identified Strengths</h2>
-        <div class="section-line"></div>
-    </div>
-
-    {% if strengths %}
-    <div class="strengths-container">
-        {% for s in strengths %}
-        <div class="strength-item">{{ s }}</div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p style="color:#64748b; font-size:12.5px; margin:0 0 16px 0;">No major strengths detected. Follow the action plan to build them.</p>
-    {% endif %}
-
-    <!-- ── Critical Issues ── -->
-    <div class="section-header">
-        <h2>⚠️ High Priority Action Items</h2>
-        <div class="section-line"></div>
-    </div>
-
-    {% if high_priority %}
-        {% for issue in high_priority %}
-        <div class="issue-card">
-            <div class="issue-title">{{ issue.issue_title }}</div>
-            <div class="issue-meta">{{ issue.explanation }}</div>
-            <div class="issue-fix"><strong>Recommended Fix:</strong> {{ issue.how_to_fix }}</div>
+        {% if high_priority %}
+            {% for issue in high_priority %}
+            <div class="issue-card">
+                <div class="issue-title">{{ issue.issue_title }}</div>
+                <div class="issue-meta">{{ issue.explanation }}</div>
+                <div class="issue-fix"><strong>Recommended Fix:</strong> {{ issue.how_to_fix }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div style="color:#a7f3d0; font-size:12px; background:rgba(16, 185, 129, 0.10); border:1px solid rgba(16, 185, 129, 0.25); padding:10px 14px; border-radius:8px; font-weight:600;">
+            ✓ No critical blockers detected. Review medium-priority items for further polish.
         </div>
-        {% endfor %}
-    {% else %}
-    <div style="color:#065f46; font-size:12.5px; background:linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border:1px solid #a7f3d0; padding:12px 16px; border-radius:10px; font-weight:600;">
-        ✓ No critical blockers found. Proceed to review fine-tuning recommendations.
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- ── Footer ── -->
-    <div class="footer">
-        <span>Generated by <strong>ResumeIQ ATS Analyzer</strong></span>
-        <span>Report 1 of 4 — Score Summary</span>
+        <!-- ── Footer ── -->
+        <div class="footer">
+            <span>Generated by <strong>ResumeIQ ATS Analyzer</strong></span>
+            <span>Report 1 of 4 — Score Summary</span>
+        </div>
     </div>
 
 </body>
