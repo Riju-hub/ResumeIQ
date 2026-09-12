@@ -4,186 +4,327 @@
     <meta charset="UTF-8">
     <title>ATS Resume Score Report</title>
     <style>
-        /* ── Page & Typography ── */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #1e293b;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap');
+
+        @page {
+            size: A4;
             margin: 0;
-            padding: 40px 50px;
-            line-height: 1.6;
-            background: #fff;
         }
 
-        /* ── Page Header ── */
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+            margin: 0;
+            padding: 38px 46px;
+            line-height: 1.55;
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.13) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.11) 0px, transparent 45%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.09) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.12) 0px, transparent 45%);
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        /* ── Header ── */
         .page-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 3px solid #1e293b;
+            align-items: center;
             padding-bottom: 14px;
-            margin-bottom: 32px;
-        }
-        .page-header .report-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #64748b;
-        }
-        .page-header .date {
-            font-size: 12px;
-            color: #64748b;
+            margin-bottom: 24px;
+            border-bottom: 1.5px solid rgba(226, 232, 240, 0.8);
         }
 
-        /* ── Report Title ── */
-        .report-title {
-            font-size: 30px;
-            font-weight: 900;
-            color: #0f172a;
-            margin: 0 0 30px 0;
-            letter-spacing: -0.5px;
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        /* ── Overall Score Box ── */
-        .score-section {
-            text-align: center;
-            margin-bottom: 36px;
-        }
-        .score-label {
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #475569;
-            margin-bottom: 8px;
-        }
-        .score-number {
-            font-size: 80px;
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: -3px;
-        }
-        .score-denom {
-            font-size: 36px;
-            font-weight: 400;
-            color: #94a3b8;
-            letter-spacing: -1px;
-        }
-        .score-interpretation {
-            font-size: 15px;
-            color: #475569;
-            margin-top: 10px;
-            font-style: italic;
-        }
-
-        /* ── Section Headings ── */
-        h2 {
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 800;
             font-size: 16px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #334155;
-            margin: 32px 0 16px 0;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
         }
 
-        /* ── Score Breakdown Table with Progress Bars ── */
+        .brand-text {
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-meta {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            background: #ffffff;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.03);
+        }
+
+        /* ── Hero Score Card ── */
+        .hero-score-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 24px 28px;
+            margin-bottom: 26px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.04), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-score-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4f46e5 0%, #ec4899 50%, #10b981 100%);
+        }
+
+        .score-pill-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #4f46e5;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            padding: 4px 14px;
+            border-radius: 999px;
+            margin-bottom: 12px;
+        }
+
+        .score-display-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .score-number {
+            font-size: 68px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .score-denom {
+            font-size: 26px;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .score-interpretation {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #475569;
+            max-width: 580px;
+            margin: 6px auto 0 auto;
+        }
+
+        /* ── Section Dividers ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 26px 0 14px 0;
+        }
+
+        .section-header h2 {
+            font-size: 12.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .section-line {
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        /* ── Score Breakdown Container ── */
+        .breakdown-grid {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+            margin-bottom: 20px;
+        }
+
         .breakdown-row {
             display: flex;
             align-items: center;
-            margin-bottom: 14px;
-            gap: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            gap: 16px;
         }
-        .breakdown-label {
-            width: 160px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #334155;
+
+        .breakdown-row:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-label-box {
+            width: 170px;
             flex-shrink: 0;
         }
+
+        .breakdown-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .breakdown-sublabel {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
         .breakdown-bar-wrap {
             flex: 1;
             background: #f1f5f9;
-            border-radius: 4px;
-            height: 10px;
+            border-radius: 999px;
+            height: 9px;
             overflow: hidden;
+            position: relative;
         }
+
         .breakdown-bar-fill {
             height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s;
+            border-radius: 999px;
+            transition: width 0.3s ease;
         }
-        .bar-green  { background: #16a34a; }
-        .bar-amber  { background: #d97706; }
-        .bar-red    { background: #dc2626; }
+
+        .bar-green { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+        .bar-amber { background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); }
+        .bar-red   { background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%); }
+
         .breakdown-score {
-            width: 60px;
-            font-size: 13px;
+            width: 70px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
             font-weight: 700;
             text-align: right;
             flex-shrink: 0;
-            color: #1e293b;
-        }
-        .breakdown-sublabel {
-            font-size: 11px;
-            color: #94a3b8;
-            font-weight: 400;
-            display: block;
+            color: #0f172a;
         }
 
         /* ── Strengths ── */
+        .strengths-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
         .strength-item {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border: 1px solid #bbf7d0;
+            border-left: 4px solid #10b981;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            color: #065f46;
+            font-weight: 500;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 10px 14px;
-            background: #f0fdf4;
-            border-left: 4px solid #16a34a;
-            border-radius: 0 6px 6px 0;
-            font-size: 13px;
-            color: #14532d;
+            gap: 8px;
+            page-break-inside: avoid;
         }
-        .strength-item::before { content: "✓"; font-weight: 700; flex-shrink: 0; }
+
+        .strength-item::before {
+            content: "✦";
+            font-weight: 800;
+            color: #10b981;
+            flex-shrink: 0;
+        }
 
         /* ── Critical Issues ── */
         .issue-card {
-            border-left: 4px solid #dc2626;
-            background: #fef2f2;
-            border-radius: 0 8px 8px 0;
-            padding: 14px 18px;
-            margin-bottom: 14px;
+            background: #ffffff;
+            border: 1px solid #fecaca;
+            border-left: 4px solid #ef4444;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.05);
+            page-break-inside: avoid;
         }
+
         .issue-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #991b1b;
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
         }
+
         .issue-meta {
             font-size: 12px;
-            color: #7f1d1d;
+            color: #475569;
             margin: 0 0 8px 0;
+            line-height: 1.45;
         }
+
         .issue-fix {
-            font-size: 12px;
+            font-size: 11.5px;
             color: #047857;
-            background: #ecfdf5;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-top: 8px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 6px 10px;
+            border-radius: 6px;
+            line-height: 1.4;
+        }
+
+        .issue-fix strong {
+            color: #065f46;
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.5px;
         }
 
         /* ── Footer ── */
         .footer {
-            margin-top: 48px;
-            padding-top: 16px;
+            margin-top: 36px;
+            padding-top: 14px;
             border-top: 1px solid #e2e8f0;
-            font-size: 11px;
+            font-size: 10.5px;
             color: #94a3b8;
+            font-weight: 600;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
@@ -191,90 +332,104 @@
 
     <!-- ── Page Header ── -->
     <div class="page-header">
-        <div>
-            <div class="report-label">ATS Resume Score Report</div>
+        <div class="header-brand">
+            <div class="brand-logo">⚡</div>
+            <div class="brand-text">ResumeIQ Analytics</div>
         </div>
-        <div class="date">{{ timestamp | format_date }}</div>
+        <div class="header-meta">{{ timestamp | format_date }}</div>
     </div>
 
-    <h1 class="report-title">ATS Resume Score Report</h1>
-
-    <!-- ── Overall Score ── -->
-    <div class="score-section">
-        <div class="score-label">Overall ATS Score</div>
-        <div>
+    <!-- ── Hero Overall Score ── -->
+    <div class="hero-score-card">
+        <div class="score-pill-tag">Overall Match Score</div>
+        <div class="score-display-wrap">
             <span class="score-number" style="color: {{ score_color }};">
                 {{ "%.0f" | format(overall_score) }}
             </span>
-            <span class="score-denom">/100</span>
+            <span class="score-denom">/ 100</span>
         </div>
         {% if interpretation %}
         <div class="score-interpretation">{{ interpretation }}</div>
         {% else %}
             {% if overall_score >= 80 %}
-            <div class="score-interpretation">Great! Your resume should perform well with most ATS systems.</div>
+            <div class="score-interpretation">Excellent! Your resume is highly optimized for top ATS algorithms and recruiters.</div>
             {% elif overall_score >= 60 %}
-            <div class="score-interpretation">Good start. A few improvements will significantly boost your score.</div>
+            <div class="score-interpretation">Solid foundation. Addressing the key recommendations will significantly boost your match rate.</div>
             {% else %}
-            <div class="score-interpretation">Your resume needs work before applying. Follow the recommendations.</div>
+            <div class="score-interpretation">Needs optimization. Address the critical structural and keyword issues before applying.</div>
             {% endif %}
         {% endif %}
     </div>
 
     <!-- ── Score Breakdown ── -->
-    <h2>Score Breakdown</h2>
-
-    {% set rows = [
-        ('Formatting',          component_scores.formatting,        20, component_pct.formatting,        'Structure, section headers, bullet points'),
-        ('Keywords & Skills',   component_scores.keywords,          25, component_pct.keywords,          'Keyword density and relevance'),
-        ('Content Quality',     component_scores.content,           25, component_pct.content,           'Action verbs, metrics, achievements'),
-        ('Skill Validation',    component_scores.skill_validation,  15, component_pct.skill_validation,  'Skills backed by project evidence'),
-        ('ATS Compatibility',   component_scores.ats_compatibility, 15, component_pct.ats_compatibility, 'Clean formatting, no parsing blockers'),
-    ] %}
-
-    {% for label, score, max_score, pct, sublabel in rows %}
-    {% set bar_class = 'bar-green' if pct >= 75 else ('bar-amber' if pct >= 50 else 'bar-red') %}
-    <div class="breakdown-row">
-        <div class="breakdown-label">
-            {{ label }}
-            <span class="breakdown-sublabel">{{ sublabel }}</span>
-        </div>
-        <div class="breakdown-bar-wrap">
-            <div class="breakdown-bar-fill {{ bar_class }}" style="width: {{ pct }}%;"></div>
-        </div>
-        <div class="breakdown-score">{{ "%.0f" | format(score) }}/{{ max_score }}</div>
+    <div class="section-header">
+        <h2>📊 Component Breakdown</h2>
+        <div class="section-line"></div>
     </div>
-    {% endfor %}
+
+    <div class="breakdown-grid">
+        {% set rows = [
+            ('Formatting & Layout',       component_scores.formatting,         20, component_pct.formatting,         'Structure, section headers, bulleting'),
+            ('Keywords & Alignment',      component_scores.keywords,           25, component_pct.keywords,           'Keyword density, skills, and industry terms'),
+            ('Content Quality & Impact',  component_scores.content,            25, component_pct.content,            'Action verbs, metrics, measurable impact'),
+            ('Skill Context Validation',  component_scores.skill_validation,   15, component_pct.skill_validation,   'Skills verified with experience context'),
+            ('ATS Parsing Compatibility', component_scores.ats_compatibility,  15, component_pct.ats_compatibility,  'Clean syntax, no parsing obstructions'),
+        ] %}
+
+        {% for label, score, max_score, pct, sublabel in rows %}
+        {% set bar_class = 'bar-green' if pct >= 75 else ('bar-amber' if pct >= 50 else 'bar-red') %}
+        <div class="breakdown-row">
+            <div class="breakdown-label-box">
+                <div class="breakdown-name">{{ label }}</div>
+                <div class="breakdown-sublabel">{{ sublabel }}</div>
+            </div>
+            <div class="breakdown-bar-wrap">
+                <div class="breakdown-bar-fill {{ bar_class }}" style="width: {{ pct }}%;"></div>
+            </div>
+            <div class="breakdown-score">{{ "%.0f" | format(score) }}/{{ max_score }}</div>
+        </div>
+        {% endfor %}
+    </div>
 
     <!-- ── Strengths ── -->
-    <h2>Strengths</h2>
+    <div class="section-header">
+        <h2>✨ Identified Strengths</h2>
+        <div class="section-line"></div>
+    </div>
+
     {% if strengths %}
+    <div class="strengths-container">
         {% for s in strengths %}
         <div class="strength-item">{{ s }}</div>
         {% endfor %}
+    </div>
     {% else %}
-    <p style="color:#64748b; font-size:13px;">No major strengths detected. Work through the recommendations to build them.</p>
+    <p style="color:#64748b; font-size:12.5px; margin:0 0 16px 0;">No major strengths detected. Follow the action plan to build them.</p>
     {% endif %}
 
     <!-- ── Critical Issues ── -->
-    <h2>Critical Issues</h2>
+    <div class="section-header">
+        <h2>⚠️ High Priority Action Items</h2>
+        <div class="section-line"></div>
+    </div>
+
     {% if high_priority %}
         {% for issue in high_priority %}
         <div class="issue-card">
             <div class="issue-title">{{ issue.issue_title }}</div>
             <div class="issue-meta">{{ issue.explanation }}</div>
-            <div class="issue-fix"><strong>Fix:</strong> {{ issue.how_to_fix }}</div>
+            <div class="issue-fix"><strong>Recommended Fix:</strong> {{ issue.how_to_fix }}</div>
         </div>
         {% endfor %}
     {% else %}
-    <p style="color:#64748b; font-size:13px; background:#f0fdf4; padding:12px; border-radius:6px;">
-        No critical issues found. Review medium-priority items in the recommendations report.
-    </p>
+    <div style="color:#065f46; font-size:12.5px; background:linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border:1px solid #a7f3d0; padding:12px 16px; border-radius:10px; font-weight:600;">
+        ✓ No critical blockers found. Proceed to review fine-tuning recommendations.
+    </div>
     {% endif %}
 
     <!-- ── Footer ── -->
     <div class="footer">
-        <span>Generated by ATS Resume Scorer</span>
+        <span>Generated by <strong>ResumeIQ ATS Analyzer</strong></span>
         <span>Report 1 of 4 — Score Summary</span>
     </div>
 
