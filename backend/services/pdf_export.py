@@ -17,24 +17,33 @@ logger = logging.getLogger("ats_resume_scorer")
 
 
 def _get_val(data: dict, *keys, default=None):
-    """Safely extracts a value from multiple possible key names or nested structures."""
+    """Safely extracts a value from multiple possible key names with case-insensitive fallback."""
     if not isinstance(data, dict):
         return default
     for k in keys:
         if k in data and data[k] is not None:
             return data[k]
+    # Check lowercase matches
+    lower_data = {str(k).lower(): v for k, v in data.items()}
+    for k in keys:
+        lk = str(k).lower()
+        if lk in lower_data and lower_data[lk] is not None:
+            return lower_data[lk]
     return default
 
 
 def generate_combined_pdf(analysis_dict: Dict[str, Any]) -> bytes:
-    """Generates a professional ATS analysis report as a PDF using ReportLab.
-    
-    Extracts all fields with fallback normalizations to guarantee accurate scores.
-    """
+    """Generates an ATS report PDF using ReportLab with multi-field fallback normalization."""
     if hasattr(analysis_dict, "model_dump"):
         analysis_dict = analysis_dict.model_dump()
     elif not isinstance(analysis_dict, dict):
         analysis_dict = {}
+
+    # Unwrap potential outer wrapper keys
+    if "analysis_result" in analysis_dict and isinstance(analysis_dict["analysis_result"], dict):
+        analysis_dict = analysis_dict["analysis_result"]
+    elif "data" in analysis_dict and isinstance(analysis_dict["data"], dict):
+        analysis_dict = analysis_dict["data"]
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -94,7 +103,7 @@ def generate_combined_pdf(analysis_dict: Dict[str, Any]) -> bytes:
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#E2E8F0"), spaceAfter=12))
 
     # 2. Extract and Normalize Overall Score
-    raw_ats_score = _get_val(analysis_dict, "ats_score", "ATS_score", "overall_score", default=0.0)
+    raw_ats_score = _get_val(analysis_dict, "ats_score", "ATS_score", "overall_score", "score", default=0.0)
     try:
         ats_score = round(float(raw_ats_score), 1)
     except Exception:
@@ -163,7 +172,7 @@ def generate_combined_pdf(analysis_dict: Dict[str, Any]) -> bytes:
     story.append(t_breakdown)
     story.append(Spacer(1, 12))
 
-    # 4. Job Description Alignment (if provided)
+    # 4. Job Description Match Analysis (if present)
     jd_comp = _get_val(analysis_dict, "jd_comparison", "jd_match_analysis", default=None)
     if hasattr(jd_comp, "model_dump"):
         jd_comp = jd_comp.model_dump()

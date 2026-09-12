@@ -1,7 +1,7 @@
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
@@ -22,7 +22,6 @@ async def analyze_resume(
     job_description: str = Form('', description='Job description text (optional)'),
     user_id: str = Depends(get_current_user),
 ):
-    # Lazy load the models only when the user requests an analysis
     nlp = get_spacy_model()
     embedder = get_sentence_embedder()
 
@@ -136,22 +135,19 @@ async def delete_history_entry(
 
 
 def _build_pdf_worker(analysis_dict: dict) -> bytes:
-    """Helper executed in a worker thread to keep the event loop free."""
+    """Passes analysis dictionary directly into ReportLab generator."""
     from backend.services.pdf_export import generate_combined_pdf
-    from backend.services.report_generator import generate_html_reports
-    
-    html_docs = generate_html_reports(analysis_dict)
-    return generate_combined_pdf(html_docs)
+    return generate_combined_pdf(analysis_dict)
 
 
 @router.post('/generate-pdf')
 async def generate_pdf(
-    data: AnalysisResponse,
+    data: Dict[str, Any] = Body(...),
     user_id: str = Depends(get_current_user),
 ):
     try:
-        payload = data.model_dump()
-        pdf_bytes = await run_in_threadpool(_build_pdf_worker, payload)
+        logger.info(f"Generating PDF for user: {user_id}. Data keys: {list(data.keys())}")
+        pdf_bytes = await run_in_threadpool(_build_pdf_worker, data)
 
         return Response(
             content=pdf_bytes,
