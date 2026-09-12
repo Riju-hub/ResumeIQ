@@ -50,37 +50,7 @@ def inject_dashboard_css():
                 padding: 0 4px;
             }
 
-            /* --- 3. Section Header Badges --- */
-            .dashboard-section-header {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin: 1.8rem 0 0.8rem 0;
-            }
-
-            .section-badge-icon {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 32px;
-                height: 32px;
-                border-radius: 9px;
-                background: rgba(99, 102, 241, 0.12);
-                border: 1px solid rgba(99, 102, 241, 0.25);
-                color: #4f46e5;
-                font-size: 0.95rem;
-                font-weight: 800;
-            }
-
-            .section-badge-title {
-                color: #0f172a;
-                font-size: clamp(1.1rem, 2.4vw, 1.35rem);
-                font-weight: 800;
-                letter-spacing: -0.02em;
-                margin: 0;
-            }
-
-            /* --- 4. Sleek Multi-Color Deliverables / Export Card --- */
+            /* --- 3. Sleek Deliverables Card --- */
             .export-card-glow {
                 background: rgba(255, 255, 255, 0.85) !important;
                 backdrop-filter: blur(14px) !important;
@@ -135,63 +105,11 @@ def inject_dashboard_css():
                 margin: 0;
             }
 
-            /* --- 5. High-Contrast Modern Buttons (Desktop & Mobile) --- */
-            div[data-testid="stButton"] button[kind="primary"] {
-                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%) !important;
-                border: none !important;
-                color: #ffffff !important;
-                border-radius: 12px !important;
-                padding: 12px 22px !important;
-                font-size: clamp(0.9rem, 2vw, 1rem) !important;
-                font-weight: 700 !important;
-                box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4) !important;
-                transition: all 0.2s ease !important;
-                min-height: 50px !important;
-            }
-
-            div[data-testid="stButton"] button[kind="primary"]:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 15px 30px -5px rgba(124, 58, 237, 0.6) !important;
-            }
-
-            div[data-testid="stDownloadButton"] button {
-                background: rgba(255, 255, 255, 0.95) !important;
-                border: 1.5px solid #cbd5e1 !important;
-                color: #0f172a !important;
-                border-radius: 12px !important;
-                padding: 12px 22px !important;
-                font-size: clamp(0.9rem, 2vw, 1rem) !important;
-                font-weight: 700 !important;
-                box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
-                transition: all 0.2s ease !important;
-                min-height: 50px !important;
-            }
-
-            div[data-testid="stDownloadButton"] button:hover {
-                background: #ffffff !important;
-                border-color: #4f46e5 !important;
-                color: #4f46e5 !important;
-                transform: translateY(-2px) !important;
-                box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2) !important;
-            }
-
-            /* --- 6. Fluid Dividers --- */
             .glass-divider {
                 height: 1px;
                 background: linear-gradient(90deg, transparent, rgba(203, 213, 225, 0.9), transparent);
                 margin: 1.6rem 0;
                 border: 0;
-            }
-
-            /* --- 7. Responsive Mobile Tweaks --- */
-            @media (max-width: 768px) {
-                .dashboard-scope {
-                    padding: 0;
-                }
-                .export-card-glow {
-                    padding: 16px 14px;
-                    border-radius: 16px;
-                }
             }
         </style>
         """,
@@ -212,7 +130,12 @@ def _summary_text(analysis: Dict[str, Any]) -> str:
     ]
 
     # 1. Overall Score & Verdict
-    score = analysis.get("ATS_score", analysis.get("ats_score", 0))
+    raw_score = analysis.get("ATS_score", analysis.get("ats_score", analysis.get("overall_score", 0.0)))
+    try:
+        score = round(float(raw_score), 1)
+    except Exception:
+        score = 0.0
+
     lines.append(f"OVERALL ATS SCORE: {score}/100")
     if analysis.get("interpretation"):
         lines.append(f"Verdict: {analysis['interpretation']}")
@@ -220,11 +143,12 @@ def _summary_text(analysis: Dict[str, Any]) -> str:
 
     # 2. Score Breakdown
     comp_scores = analysis.get("component_scores")
-    if comp_scores:
+    if hasattr(comp_scores, "model_dump"):
+        comp_scores = comp_scores.model_dump()
+    if isinstance(comp_scores, dict):
         lines.append("📈 SCORE BREAKDOWN:")
-        if isinstance(comp_scores, dict):
-            for comp, val in comp_scores.items():
-                lines.append(f"  • {comp.replace('_', ' ').title()}: {val}")
+        for comp, val in comp_scores.items():
+            lines.append(f"  • {comp.replace('_', ' ').title()}: {val}")
         lines.append("")
 
     # 3. Strengths & Critical Blockers
@@ -235,33 +159,26 @@ def _summary_text(analysis: Dict[str, Any]) -> str:
             lines.append(f"  ✓ {s}")
         lines.append("")
 
-    issues_summary = analysis.get("issues_summary")
-    if issues_summary and isinstance(issues_summary, dict):
-        critical_count = issues_summary.get("critical", 0)
-        lines.append(f"🚨 CRITICAL BLOCKERS: {critical_count} found")
-        if critical_count == 0:
-            lines.append("  🎉 No critical errors found! Your document complies with standard ATS parsing.")
-        lines.append("")
-
     # 4. Job Description Match (If Present)
     jd_comp = analysis.get("jd_comparison") or analysis.get("jd_match_analysis")
-    if jd_comp:
+    if hasattr(jd_comp, "model_dump"):
+        jd_comp = jd_comp.model_dump()
+    if isinstance(jd_comp, dict) and jd_comp:
         lines.append("🎯 JOB DESCRIPTION MATCH:")
-        match_pct = jd_comp.get("match_percentage", "N/A") if isinstance(jd_comp, dict) else getattr(jd_comp, "match_percentage", "N/A")
-        sem_sim = jd_comp.get("semantic_similarity", "N/A") if isinstance(jd_comp, dict) else getattr(jd_comp, "semantic_similarity", "N/A")
-        lines.append(f"  • Match Percentage: {match_pct}%")
-        lines.append(f"  • Semantic Similarity: {sem_sim}")
-        
-        matched_kw = (jd_comp.get("matched_keywords") if isinstance(jd_comp, dict) else getattr(jd_comp, "matched_keywords", [])) or []
-        missing_kw = (jd_comp.get("missing_keywords") if isinstance(jd_comp, dict) else getattr(jd_comp, "missing_keywords", [])) or []
+        lines.append(f"  • Match Percentage: {jd_comp.get('match_percentage', 0)}%")
+        lines.append(f"  • Semantic Similarity: {jd_comp.get('semantic_similarity', 0)}")
+        matched_kw = jd_comp.get("matched_keywords") or []
+        missing_kw = jd_comp.get("missing_keywords") or []
         if matched_kw:
-            lines.append(f"  • Matched Keywords: {', '.join(matched_kw[:15])}")
+            lines.append(f"  • Matched Keywords: {', '.join(str(k) for k in matched_kw[:15])}")
         if missing_kw:
-            lines.append(f"  • Missing Keywords: {', '.join(missing_kw[:15])}")
+            lines.append(f"  • Missing Keywords: {', '.join(str(k) for k in missing_kw[:15])}")
         lines.append("")
 
     # 5. Skill Demonstration Matrix
     val_details = analysis.get("skill_validation_details")
+    if hasattr(val_details, "model_dump"):
+        val_details = val_details.model_dump()
     if isinstance(val_details, dict):
         total = val_details.get("total", 0)
         valid_cnt = val_details.get("validated_count", len(val_details.get("validated", [])))
@@ -271,51 +188,7 @@ def _summary_text(analysis: Dict[str, Any]) -> str:
         lines.append(f"  • Evidence-Validated: {valid_cnt}")
         lines.append(f"  • Verification Rate: {pct}%\n")
 
-        validated = val_details.get("validated", [])
-        if validated:
-            lines.append("  [Validated / Demonstrated Skills]")
-            lines.append("  " + ", ".join(f"✓ {s}" for s in validated))
-            lines.append("")
-
-        unvalidated = val_details.get("unvalidated", [])
-        if unvalidated:
-            lines.append("  [Unsubstantiated Skills (Missing Proof in Experience/Projects)]")
-            lines.append("  " + ", ".join(f"⚠️ {s}" for s in unvalidated))
-            lines.append("")
-
-    # 6. Detailed Feedback Issues
-    feedback = analysis.get("detailed_feedback") or []
-    if feedback and isinstance(feedback, list):
-        lines.append("🔍 DETAILED FEEDBACK & FLAWS:")
-        for idx, item in enumerate(feedback, 1):
-            if isinstance(item, dict):
-                title = item.get("issue_title", "Issue")
-                severity = item.get("severity_level", "Medium")
-                impact = item.get("ats_impact", "Medium")
-                lines.append(f"{idx}. {title} [Severity: {severity} | ATS Impact: {impact}]")
-                if item.get("explanation"):
-                    lines.append(f"   Why: {item['explanation']}")
-                if item.get("how_to_fix"):
-                    lines.append(f"   Fix: {item['how_to_fix']}")
-                if item.get("example_improvement"):
-                    lines.append(f"   Example: {item['example_improvement']}")
-                lines.append("")
-
-    # 7. Action Items Checklist
-    action_items = analysis.get("action_items") or []
-    lines.append("⚡ CONCRETE ACTION ITEMS:")
-    if action_items:
-        for item in action_items:
-            lines.append(f"  [ ] {item}")
-    else:
-        for item in feedback:
-            if isinstance(item, dict) and item.get("how_to_fix"):
-                lines.append(f"  [ ] [{item.get('issue_title', 'Fix')}] {item.get('how_to_fix')}")
-        if isinstance(val_details, dict):
-            for unval in (val_details.get("unvalidated") or [])[:5]:
-                lines.append(f"  [ ] Integrate '{unval}' into a project or work experience bullet point.")
-
-    lines.append("\n" + "=" * 60)
+    lines.append("=" * 60)
     return "\n".join(lines)
 
 
@@ -345,7 +218,7 @@ def _render_export_section(analysis: Dict[str, Any]) -> None:
             except requests.RequestException as exc:
                 st.error(f"Failed to generate PDF: {exc}")
 
-        if "dashboard_pdf_bytes" in st.session_state:
+        if "dashboard_pdf_bytes" in st.session_state and st.session_state["dashboard_pdf_bytes"]:
             st.download_button(
                 label="⬇️ Download PDF Report",
                 data=st.session_state["dashboard_pdf_bytes"],
@@ -402,7 +275,6 @@ def display_results_dashboard(analysis: Dict[str, Any]) -> None:
     display_detailed_feedback(analysis)
     display_action_items(analysis)
 
-    # Safe call for recommendations
     try:
         if analysis.get("recommendations"):
             display_recommendations(analysis)
